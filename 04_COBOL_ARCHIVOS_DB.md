@@ -417,15 +417,16 @@ END PROGRAM CAPITULO-27.
   ENVIRONMENT DIVISION.
   INPUT-OUTPUT SECTION.
   FILE-CONTROL.
-*Archivo fisico en modo dinamico.
+
   SELECT EMPLEADOS-ARCHIVO
   ASSIGN TO "empleados.dat"
   ORGANIZATION IS INDEXED
   RECORD KEY IS EMPLEADOS-ID
   ACCESS MODE IS DYNAMIC.
+
   DATA DIVISION.
   FILE SECTION.
-*Archivo logico.
+
   FD EMPLEADOS-ARCHIVO.
   01 EMPLEADOS-REGISTRO.
       05 EMPLEADOS-ID PIC 9(6).
@@ -434,9 +435,12 @@ END PROGRAM CAPITULO-27.
       05 EMPLEADOS-EDAD PIC 9(3).
       05 EMPLEADOS-TELEFONO PIC X(9).
       05 EMPLEADOS-DIRECCION PIC X(35).
+
   WORKING-STORAGE SECTION.
   77  LEE-TODO  PIC X.
+  
   PROCEDURE DIVISION.
+  
   EMPIEZA-PROGRAMA.
   PERFORM PROCEDIMIENTO-DE-APERTURA.
   MOVE "0" TO LEE-TODO.
@@ -447,18 +451,24 @@ END PROGRAM CAPITULO-27.
           PERFORM MUESTRA-CAMPOS
           UNTIL LEE-TODO = "1".
           PERFORM PROCEDIMIENTO-DE-CIERRE.
+          
           FINALIZA-PROGRAMA.
           STOP RUN.
+          
           PROCEDIMIENTO-DE-APERTURA.
           OPEN I-O EMPLEADOS-ARCHIVO.
+          
           PROCEDIMIENTO-DE-CIERRE.
           CLOSE EMPLEADOS-ARCHIVO.
+          
           MUESTRA-CAMPOS.
           DISPLAY "ID: " EMPLEADOS-ID
         " Nombre: " EMPLEADOS-NOMBRE " Apellidos: "
         EMPLEADOS-APELLIDOS " Edad: " EMPLEADOS-EDAD " Telefono: "
         EMPLEADOS-TELEFONO " Direccion: " EMPLEADOS-DIRECCION.
+        
         PERFORM LEE-SIGUIENTE-REGISTRO.
+        
         LEE-SIGUIENTE-REGISTRO.
         READ EMPLEADOS-ARCHIVO NEXT RECORD
         AT END MOVE "1" TO LEE-TODO.
@@ -514,6 +524,7 @@ WORKING-STORAGE SECTION.
 77  CAMPO-EMPLEADOS-ID PIC Z(5).
 
 PROCEDURE DIVISION.
+
 EMPIEZA-PROGRAMA.
 OPEN I-O EMPLEADOS-ARCHIVO.
 PERFORM OBTENER-REGISTRO-DE-EMPLEADO.
@@ -530,9 +541,11 @@ MOVE "N" TO REGISTRO-ENCONTRADO.
 PERFORM ENCUENTRA-REGISTRO-EMPLEADO
 UNTIL REGISTRO-ENCONTRADO = "S" OR
 EMPLEADOS-ID = ZEROES.
+
 INICIA-REGISTRO-DE-EMPLEADOS.
 MOVE SPACE TO EMPLEADOS-REGISTRO.
 MOVE ZEROES TO EMPLEADOS-ID.
+
 INTRODUCIR-NUMERO-ID-EMPLEADO.
 DISPLAY " ".
 DISPLAY "Introduce un numero de ID de empleado." .
@@ -540,16 +553,19 @@ DISPLAY "Introduce un numero del 1 al 99999".
 DISPLAY "Introduce cualquier otra cosa para salir.".
 ACCEPT CAMPO-EMPLEADOS-ID.
 MOVE CAMPO-EMPLEADOS-ID TO EMPLEADOS-ID.
+
 ENCUENTRA-REGISTRO-EMPLEADO.
 PERFORM LEE-REGISTRO-EMPLEADO.
 IF REGISTRO-ENCONTRADO = "N"
 DISPLAY "No se encontro ningun registro con ese ID."
 PERFORM INTRODUCIR-NUMERO-ID-EMPLEADO.
+
 LEE-REGISTRO-EMPLEADO.
 MOVE "S" TO REGISTRO-ENCONTRADO.
 READ EMPLEADOS-ARCHIVO RECORD
 INVALID KEY
 MOVE "N" TO REGISTRO-ENCONTRADO.
+
 ELIMINA-REGISTROS.
 PERFORM MOSTRAR-TODOS-LOS-CAMPOS.
 MOVE "Z" TO SI-A-ELIMINAR.
@@ -558,6 +574,7 @@ UNTIL SI-A-ELIMINAR = "S" OR "N".
 IF SI-A-ELIMINAR = "S"
 PERFORM ELIMINA-REGISTRO.
 PERFORM OBTENER-REGISTRO-DE-EMPLEADO.
+
 MOSTRAR-TODOS-LOS-CAMPOS.
 DISPLAY " ".
 PERFORM MOSTRAR-EMPLEADO-ID.
@@ -567,16 +584,22 @@ PERFORM MOSTRAR-EMPLEADO-EDAD.
 PERFORM MOSTRAR-EMPLEADO-TELEFONO.
 PERFORM MOSTRAR-EMPLEADO-DIRECCION.
 DISPLAY " ".
+
 MOSTRAR-EMPLEADO-ID.
 DISPLAY "ID: " EMPLEADOS-ID.
+
 MOSTRAR-EMPLEADO-NOMBRE.
 DISPLAY "NOMBRE: " EMPLEADOS-NOMBRE.
+
 MOSTRAR-EMPLEADO-APELLIDOS.
 DISPLAY "APELLIDOS: " EMPLEADOS-APELLIDOS.
+
 MOSTRAR-EMPLEADO-EDAD.
 DISPLAY "EDAD: " EMPLEADOS-EDAD.
+
 MOSTRAR-EMPLEADO-TELEFONO.
 DISPLAY "TELEFONO: " EMPLEADOS-TELEFONO.
+
 MOSTRAR-EMPLEADO-DIRECCION.
 DISPLAY "DIRECCION: " EMPLEADOS-DIRECCION.
 
@@ -590,6 +613,7 @@ MOVE "N" TO SI-A-ELIMINAR.
 IF SI-A-ELIMINAR NOT = "S" AND
 SI-A-ELIMINAR NOT = "N"
 DISPLAY "Debes introducir S/N.".
+
 ELIMINA-REGISTRO.
 DELETE EMPLEADOS-ARCHIVO RECORD
 INVALID KEY
@@ -597,6 +621,96 @@ DISPLAY "Error eliminando el registro de empleados.".
 ~~~
 
 ## Problemas con la creación del archivo - BASES DE DATOS VIII
+
+- La DB tiene un fallo en el archivo de crear archivo e introducir registros
+- Si dejo de ejecutar el programa y lo vuelvo a ejecutar, me va a borrar todo lo que tenía en el archivo
+- Para evitar que pase esto la respuesta está en el **OPEN**
+- De los 4 tipos de OPEN, 3 est-an disponibles para los archivos indexados y **EXTEND** no, es para los secuenciales
+- **INPUT** solo sirve para leer y si no esta creado el archivo da error
+- Con **OUTPUT** puedo leer y escribir, si el archivo no esta creado lo crea, pero si está creado lo borra
+- En el modo **I-O** (INPUT-OUTPUT) si el archivo no está creado me va a dar error también 
+- La solución es crear un archivo solo de creación del archivo y dejar 
+- Dejo el **OPEN I-O EMPLEADOS-ARCHIVO en PROCEDIMIENTO-DE-APERTURA** de CREATE-INDEXED-FILE
+- Entonces ahora debo ejecutar primero el programa de creación de archivo para que no de error
+
+- OUTPUT-PHYSICAL.cob
+
+~~~cbl
+     IDENTIFICATION DIVISION.
+       PROGRAM-ID. OUTPUT-PHYSICAL.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+      *Archivo fisico en modo dinamico.
+       FILE-CONTROL.
+       COPY "PHYSICAL-FILE.cbl".
+
+       DATA DIVISION.
+       FILE SECTION.
+      *Archivo logico.
+       COPY "LOGICAL-FILE.cbl".
+       WORKING-STORAGE SECTION.
+       PROCEDURE DIVISION.
+
+       PROCEDIMIENTO-DE-APERTURA.
+       OPEN OUTPUT EMPLEADOS-ARCHIVO.
+
+       PROCEDIMIENTO-DE-CIERRE.
+       CLOSE EMPLEADOS-ARCHIVO.
+       DISPLAY "Se ha creado el archivo correctamente."
+            STOP RUN.
+       END PROGRAM OUTPUT-PHYSICAL.
+~~~
+
+- En COBOL vas a tener que realizar esta tarea para crear archivos porque tiene ciertas limitaciones
+
+## EVALUATES y REDEFINES (FINAL)
+
+- **EVALUATE TRUE** se parece bastante a lo que sería un switch
+
+~~~cbl
+IDENTIFICATION DIVISION.
+PROGRAM-ID. CAPITULO-31.
+DATA DIVISION.
+FILE SECTION.
+WORKING-STORAGE SECTION.
+	77 NUM1 PIC 9(5) VALUE 16.
+	77 NUM2 PIC 9(5) VALUE 10.
+	77 NUM3 PIC 9(5) VALUE 20.
+
+PROCEDURE DIVISION.
+
+MAIN-PROCEDURE.
+	EVALUATE TRUE
+	WHEN NUM1 = 5
+	COMPUTE NUM1 = NUM1 + NUM2 + NUM3
+	DISPLAY NUM1
+
+	WHEN NUM1 = 10
+	COMPUTE NUM1 = NUM1 * NUM3
+	DISPLAY NUM1
+
+	WHEN NUM1 = 15
+	COMPUTE NUM1 = NUM2 - NUM3
+	DISPLAY NUM1
+
+	WHEN OTHER
+	DISPLAY "VALOR NO CONTEMPLADO."
+
+END-EVALUATE.
+
+STOP RUN.
+END PROGRAM CAPITULO-31.
+~~~
+
+- **REDEFINES** permite cambiar el tipo de PICTURE y se puede utilizar con cualquier numero de nivel excepto 01
+- Por ejemplo podría redefinir NUM1 a string así
+- Puedo cargar un número con MOVE en NUMSTR. NUMSTR obtiene el valor de NUM1 por defecto
+- Debo usar REDEFINES **debajo de la variable a usar**, si no me dará error
+
+~~~cbl
+77 NUM1 PIC 9(3)
+77 NUMSTR REDEFINES NUM1 PIC X(7).
+~~~
 
 - 
 
